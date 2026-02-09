@@ -12,13 +12,22 @@ window.addEventListener('DOMContentLoaded', () => {
   let reader = null;
   let writer = null;
   let deviceState = 0; // 0: 未连接, 1: 已连接
-  let refreshInterval = 200; // 刷新间隔（毫秒）
+  let refreshInterval = 100; // 刷新间隔（毫秒）
   let animationId = null;
   let lastRefreshTime = 0;
+  let displayMode = 'data'; // 显示模式: 'data' 或 'spectrum'
+
+  // 音频相关变量
+  let audioContext = null;
+  let analyser = null;
+  let microphone = null;
+  let dataArray = null;
+  let bufferLength = null;
+  let isMicrophoneActive = false;
 
   // 显示参数
-  let SHOW_WIDTH = 160; // Canvas 显示宽度（用于网页显示）
-  let SHOW_HEIGHT = 80; // Canvas 显示高度（用于网页显示）
+  let SHOW_WIDTH = 320; // Canvas 显示宽度（用于网页显示）
+  let SHOW_HEIGHT = 240; // Canvas 显示高度（用于网页显示）
   let LCD_X = 160; // 设备实际宽度
   let LCD_Y = 80; // 设备实际高度
 
@@ -160,6 +169,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
       ctx.font = this.font;
       ctx.textBaseline = 'top';
+      ctx.textAlign = 'left';
 
       layouts.forEach(layout => {
         if (this.monitorData[layout.key]) {
@@ -176,30 +186,147 @@ window.addEventListener('DOMContentLoaded', () => {
   // 创建全局监控器实例
   const monitor = new SystemMonitor();
 
+  // 初始化音频上下文和麦克风
+  async function initAudio() {
+    try {
+      // 创建音频上下文
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+      // 请求麦克风访问
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // 创建麦克风源
+      microphone = audioContext.createMediaStreamSource(stream);
+
+      // 创建分析器
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+
+      // 连接麦克风到分析器
+      microphone.connect(analyser);
+
+      // 获取分析器数据
+      bufferLength = analyser.frequencyBinCount;
+      dataArray = new Uint8Array(bufferLength);
+
+      isMicrophoneActive = true;
+      console.log('麦克风初始化成功');
+    } catch (error) {
+      console.error('初始化音频时出错:', error);
+      isMicrophoneActive = false;
+    }
+  }
+
+  // 停止音频分析
+  function stopAudio() {
+    if (audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+    if (microphone) {
+      microphone.disconnect();
+      microphone = null;
+    }
+    if (analyser) {
+      analyser.disconnect();
+      analyser = null;
+    }
+    isMicrophoneActive = false;
+    console.log('音频分析已停止');
+  }
+
+  // 绘制频谱
+  function drawSpectrum() {
+    // 清空画布
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, SHOW_WIDTH, SHOW_HEIGHT);
+
+    if (!isMicrophoneActive || !analyser) {
+      ctx.fillStyle = 'white';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('麦克风未初始化', SHOW_WIDTH / 2, SHOW_HEIGHT / 2);
+      return;
+    }
+
+    // 获取频谱数据
+    analyser.getByteFrequencyData(dataArray);
+
+    // 计算柱状图宽度和间距
+    const barWidth = (SHOW_WIDTH / bufferLength) * 2.5;
+    let x = 0;
+
+    // 绘制频谱柱状图
+    for (let i = 0; i < bufferLength; i++) {
+      // 计算柱状图高度
+      const barHeight = (dataArray[i] / 255) * SHOW_HEIGHT;
+
+      // 生成渐变颜色
+      const r = Math.floor((i / bufferLength) * 255);
+      const g = Math.floor((dataArray[i] / 255) * 255);
+      const b = 150;
+
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+
+      // 绘制柱状图
+      ctx.fillRect(x, SHOW_HEIGHT - barHeight, barWidth, barHeight);
+
+      // 移动到下一个柱状图位置
+      x += barWidth + 1;
+    }
+  }
+
   // 分辨率选择事件监听器
   const resolutionSelect = document.getElementById('resolution');
 
   resolutionSelect.addEventListener('change', (e) => {
-    
+
     const selectedResolution = e.target.value;
     const resolutionConfig = RESOLUTIONS[selectedResolution];
-    
+
     // 更新显示参数
     SHOW_WIDTH = resolutionConfig.showWidth;
     SHOW_HEIGHT = resolutionConfig.showHeight;
     LCD_X = resolutionConfig.lcdX;
     LCD_Y = resolutionConfig.lcdY;
-    
+
     // 更新Canvas尺寸
     canvas.width = SHOW_WIDTH;
     canvas.height = SHOW_HEIGHT;
-    
+
     // 重新创建显示图像
-    monitor.createDisplayImage();
-    
+    if (displayMode === 'data') {
+      monitor.createDisplayImage();
+    } else {
+      drawSpectrum();
+    }
+
     // 显示信息
     console.log(`分辨率已切换至: ${selectedResolution}`);
-    
+
+  });
+
+  // 显示模式选择事件监听器
+  const displayModeSelect = document.getElementById('display-mode');
+
+  displayModeSelect.addEventListener('change', (e) => {
+
+    displayMode = e.target.value;
+
+    // 重新创建显示图像
+    if (displayMode === 'data') {
+      monitor.createDisplayImage();
+    } else {
+      // 如果切换到频谱模式，初始化麦克风
+      if (!isMicrophoneActive) {
+        initAudio();
+      }
+      drawSpectrum();
+    }
+
+    // 显示信息
+    console.log(`显示模式已切换至: ${displayMode === 'data' ? '文本数据' : '频谱分析'}`);
+
   });
 
   // 连接按钮点击事件
@@ -234,10 +361,10 @@ window.addEventListener('DOMContentLoaded', () => {
       // 连接成功后自动开始监控
       setTimeout(() => {
         if (!animationId) {
-          console.log('自动开始监控...');
+          console.log('自动开始...');
           animationId = requestAnimationFrame(animate);
         }
-      }, 200);
+      }, 100);
 
     } catch (error) {
       console.error('连接设备时出错:', error);
@@ -366,7 +493,7 @@ window.addEventListener('DOMContentLoaded', () => {
       while (i < 128) {
         let a = 0;
         let a_data = photoData[dataIndex];
-        
+
         // 统计第一种颜色的连续出现次数（最多15次）
         for (let s = 0; s < 15; s++) {
           if (i < 128 && a_data === photoData[dataIndex]) {
@@ -380,7 +507,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         let b = 0;
         let b_data = 0;
-        
+
         // 统计第二种颜色的连续出现次数（最多15次）
         if (i < 128) {
           b_data = photoData[dataIndex];
@@ -409,7 +536,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const remainingDataSize = totalDataSize % dataPerPage;
     if (remainingDataSize !== 0) {
       const remainingData = photoData.slice(totalDataSize - remainingDataSize);
-      
+
       // 补全数据到128字节
       while (remainingData.length < dataPerPage) {
         remainingData.push(0xFFFF);
@@ -420,7 +547,7 @@ window.addEventListener('DOMContentLoaded', () => {
       while (i < 128) {
         let a = 0;
         let a_data = remainingData[dataIndex];
-        
+
         for (let s = 0; s < 15; s++) {
           if (i < 128 && a_data === remainingData[dataIndex]) {
             a++;
@@ -433,7 +560,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         let b = 0;
         let b_data = 0;
-        
+
         if (i < 128) {
           b_data = remainingData[dataIndex];
           for (let s = 0; s < 15; s++) {
@@ -536,6 +663,33 @@ window.addEventListener('DOMContentLoaded', () => {
     await sendData(hexUse);
   }
 
+  // 显示频谱到LCD屏幕
+  async function showFrequencySpectrum() {
+    // 绘制频谱
+    drawSpectrum();
+
+    // 创建一个临时Canvas用于图像缩放
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = LCD_X;
+    tempCanvas.height = LCD_Y;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // 将原始Canvas内容缩放到设备实际分辨率
+    tempCtx.drawImage(canvas, 0, 0, LCD_X, LCD_Y);
+
+    // 获取缩放后的图像数据
+    const imageData = tempCtx.getImageData(0, 0, LCD_X, LCD_Y);
+
+    // 转换为RGB565格式
+    const rgb565 = rgb888ToRgb565(imageData);
+
+    // 压缩数据
+    const hexUse = ScreenDateProcess(rgb565);
+
+    // 发送数据到设备
+    await sendData(hexUse);
+  }
+
   // 动画循环
   async function animate(timestamp) {
     if (!lastRefreshTime) {
@@ -552,10 +706,18 @@ window.addEventListener('DOMContentLoaded', () => {
           // 设置显示区域
           await LCD_ADD(0, 0, LCD_X, LCD_Y);
 
-          // 显示系统状态
-          await showPCState();
+          // 根据显示模式选择要显示的内容
+          if (displayMode === 'spectrum') {
+            // 如果是频谱模式但麦克风未初始化，则初始化麦克风
+            if (!isMicrophoneActive) {
+              await initAudio();
+            }
+            await showFrequencySpectrum();
+          } else {
+            await showPCState();
+          }
         } catch (error) {
-          console.error('显示系统状态时出错:', error);
+          console.error('显示内容时出错:', error);
         }
       }
     }

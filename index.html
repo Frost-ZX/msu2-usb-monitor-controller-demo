@@ -13,16 +13,23 @@
     <button id="start-button">开始发送</button>
     <button id="stop-button">停止发送</button>
     <div class="resolution-selector">
-      <label for="resolution">分辨率:</label>
+      <label for="resolution">分辨率：</label>
       <select id="resolution">
         <option value="160x80" selected>160x80</option>
         <option value="350x172">350x172</option>
         <option value="320x240">320x240</option>
       </select>
     </div>
+    <div class="display-mode-selector">
+      <label for="display-mode">显示模式：</label>
+      <select id="display-mode">
+        <option value="data" selected>文本数据</option>
+        <option value="spectrum">频谱分析</option>
+      </select>
+    </div>
   </div>
   <div class="canvas-container">
-    <canvas id="monitor-canvas" width="160" height="80"></canvas>
+    <canvas id="monitor-canvas" width="320" height="240"></canvas>
   </div>
   <script src="./assets/main.js"></script>
 </body>
