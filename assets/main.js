@@ -17,8 +17,17 @@ window.addEventListener('DOMContentLoaded', () => {
   let lastRefreshTime = 0;
 
   // 显示参数
-  const SHOW_WIDTH = 350; // 屏幕宽度
-  const SHOW_HEIGHT = 172; // 屏幕高度
+  let SHOW_WIDTH = 160; // Canvas 显示宽度（用于网页显示）
+  let SHOW_HEIGHT = 80; // Canvas 显示高度（用于网页显示）
+  let LCD_X = 160; // 设备实际宽度
+  let LCD_Y = 80; // 设备实际高度
+
+  // 分辨率选项配置
+  const RESOLUTIONS = {
+    '160x80': { showWidth: 320, showHeight: 240, lcdX: 160, lcdY: 80 },
+    '350x172': { showWidth: 320, showHeight: 240, lcdX: 350, lcdY: 172 },
+    '320x240': { showWidth: 320, showHeight: 240, lcdX: 320, lcdY: 240 }
+  };
 
   // RGB565颜色定义
   const RED = 0xF800;
@@ -166,6 +175,32 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 创建全局监控器实例
   const monitor = new SystemMonitor();
+
+  // 分辨率选择事件监听器
+  const resolutionSelect = document.getElementById('resolution');
+
+  resolutionSelect.addEventListener('change', (e) => {
+    
+    const selectedResolution = e.target.value;
+    const resolutionConfig = RESOLUTIONS[selectedResolution];
+    
+    // 更新显示参数
+    SHOW_WIDTH = resolutionConfig.showWidth;
+    SHOW_HEIGHT = resolutionConfig.showHeight;
+    LCD_X = resolutionConfig.lcdX;
+    LCD_Y = resolutionConfig.lcdY;
+    
+    // 更新Canvas尺寸
+    canvas.width = SHOW_WIDTH;
+    canvas.height = SHOW_HEIGHT;
+    
+    // 重新创建显示图像
+    monitor.createDisplayImage();
+    
+    // 显示信息
+    console.log(`分辨率已切换至: ${selectedResolution}`);
+    
+  });
 
   // 连接按钮点击事件
   connectButton.addEventListener('click', async () => {
@@ -317,69 +352,110 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // 对图像数据进行压缩处理，减少传输数据量
+  // 基于 compaction.c 中的 MSN_compaction 算法移植
   function ScreenDateProcess(photoData) {
     const totalDataSize = photoData.length;
     const dataPerPage = 128;
-    let dataPage1 = 0;
-    let dataPage2 = 0;
     const hexUse = [];
+    let dataIndex = 0;
 
-    // 按页处理数据
-    for (let i = 0; i < Math.floor(totalDataSize / dataPerPage); i++) {
-      dataPage1 = dataPage2;
-      dataPage2 += dataPerPage;
-      const dataW = photoData.slice(dataPage1, dataPage2);
-      const cmpUse = [];
-      for (let j = 0; j < dataW.length; j += 2) {
-        cmpUse.push((dataW[j] << 16) | dataW[j + 1]);
-      }
-
-      // 找出最频繁的颜色作为背景色
-      const colorCount = {};
-      cmpUse.forEach(color => {
-        colorCount[color] = (colorCount[color] || 0) + 1;
-      });
-      let maxCount = 0;
-      let backgroundColor = 0;
-      for (const [color, count] of Object.entries(colorCount)) {
-        if (count > maxCount) {
-          maxCount = count;
-          backgroundColor = parseInt(color);
+    // 按页处理数据（每页128个像素）
+    const totalPages = Math.floor(totalDataSize / dataPerPage);
+    for (let page = 0; page < totalPages; page++) {
+      let i = 0;
+      while (i < 128) {
+        let a = 0;
+        let a_data = photoData[dataIndex];
+        
+        // 统计第一种颜色的连续出现次数（最多15次）
+        for (let s = 0; s < 15; s++) {
+          if (i < 128 && a_data === photoData[dataIndex]) {
+            a++;
+            i++;
+            dataIndex++;
+          } else {
+            break;
+          }
         }
-      }
 
-      hexUse.push(2, 4);
-      hexUse.push(...digitToInts(backgroundColor));
-
-      // 只记录与背景色不同的像素
-      cmpUse.forEach((cmpValue, index) => {
-        if (cmpValue !== backgroundColor) {
-          hexUse.push(4, index);
-          hexUse.push(...digitToInts(cmpValue));
+        let b = 0;
+        let b_data = 0;
+        
+        // 统计第二种颜色的连续出现次数（最多15次）
+        if (i < 128) {
+          b_data = photoData[dataIndex];
+          for (let s = 0; s < 15; s++) {
+            if (i < 128 && b_data === photoData[dataIndex]) {
+              b++;
+              i++;
+              dataIndex++;
+            } else {
+              break;
+            }
+          }
         }
-      });
 
-      hexUse.push(2, 3, 8, 1, 0, 0);
+        // 输出压缩数据：[9, a*16+b, a_data高字节, a_data低字节, b_data高字节, b_data低字节]
+        hexUse.push(9);
+        hexUse.push(a * 16 + b);
+        hexUse.push((a_data >> 8) & 0xFF);
+        hexUse.push(a_data & 0xFF);
+        hexUse.push((b_data >> 8) & 0xFF);
+        hexUse.push(b_data & 0xFF);
+      }
     }
 
     // 处理剩余数据
     const remainingDataSize = totalDataSize % dataPerPage;
     if (remainingDataSize !== 0) {
-      const dataW = photoData.slice(-remainingDataSize);
-      // 补全数据
-      while (dataW.length < dataPerPage) {
-        dataW.push(0xFFFF);
+      const remainingData = photoData.slice(totalDataSize - remainingDataSize);
+      
+      // 补全数据到128字节
+      while (remainingData.length < dataPerPage) {
+        remainingData.push(0xFFFF);
       }
-      const cmpUse = [];
-      for (let j = 0; j < dataW.length; j += 2) {
-        cmpUse.push((dataW[j] << 16) | dataW[j + 1]);
+
+      let i = 0;
+      let dataIndex = 0;
+      while (i < 128) {
+        let a = 0;
+        let a_data = remainingData[dataIndex];
+        
+        for (let s = 0; s < 15; s++) {
+          if (i < 128 && a_data === remainingData[dataIndex]) {
+            a++;
+            i++;
+            dataIndex++;
+          } else {
+            break;
+          }
+        }
+
+        let b = 0;
+        let b_data = 0;
+        
+        if (i < 128) {
+          b_data = remainingData[dataIndex];
+          for (let s = 0; s < 15; s++) {
+            if (i < 128 && b_data === remainingData[dataIndex]) {
+              b++;
+              i++;
+              dataIndex++;
+            } else {
+              break;
+            }
+          }
+        }
+
+        hexUse.push(9);
+        hexUse.push(a * 16 + b);
+        hexUse.push((a_data >> 8) & 0xFF);
+        hexUse.push(a_data & 0xFF);
+        hexUse.push((b_data >> 8) & 0xFF);
+        hexUse.push(b_data & 0xFF);
       }
-      cmpUse.forEach((cmpValue, index) => {
-        hexUse.push(4, index);
-        hexUse.push(...digitToInts(cmpValue));
-      });
-      hexUse.push(2, 3, 8, 0, remainingDataSize * 2, 0);
     }
+
     return hexUse;
   }
 
@@ -438,8 +514,17 @@ window.addEventListener('DOMContentLoaded', () => {
     // 创建显示图像
     const image = monitor.createDisplayImage();
 
-    // 获取图像数据
-    const imageData = ctx.getImageData(0, 0, SHOW_WIDTH, SHOW_HEIGHT);
+    // 创建一个临时Canvas用于图像缩放
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = LCD_X;
+    tempCanvas.height = LCD_Y;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // 将原始Canvas内容缩放到设备实际分辨率
+    tempCtx.drawImage(canvas, 0, 0, LCD_X, LCD_Y);
+
+    // 获取缩放后的图像数据
+    const imageData = tempCtx.getImageData(0, 0, LCD_X, LCD_Y);
 
     // 转换为RGB565格式
     const rgb565 = rgb888ToRgb565(imageData);
@@ -465,7 +550,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (deviceState === 1) {
         try {
           // 设置显示区域
-          await LCD_ADD(0, 0, SHOW_WIDTH, SHOW_HEIGHT);
+          await LCD_ADD(0, 0, LCD_X, LCD_Y);
 
           // 显示系统状态
           await showPCState();
