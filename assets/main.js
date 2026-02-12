@@ -627,11 +627,10 @@ window.addEventListener('DOMContentLoaded', () => {
   // 发送数据到设备
   async function sendData(dataArray) {
     if (!writer) return;
-
     try {
       const data = new Uint8Array(dataArray);
       await writer.write(data);
-      console.log('发送数据:', dataArray.length, '字节');
+      console.debug('发送数据:', dataArray.length, '字节');
     } catch (error) {
       console.error('发送数据时出错:', error);
     }
