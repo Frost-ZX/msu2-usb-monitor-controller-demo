@@ -386,7 +386,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // 处理接收到的数据
         const data = decoder.decode(value);
-        console.log('接收到数据:', data);
+        console.debug('接收数据:', data);
 
         // 检测是否为 MSN 设备
         if (data.length > 5) {
@@ -426,7 +426,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       await writer.write(data);
-      console.log('发送消息:', message);
+      console.debug('发送数据:', message);
     } catch (error) {
       console.error('发送消息时出错:', error);
     }
