@@ -201,6 +201,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // 创建分析器
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.25;
 
       // 连接麦克风到分析器
       microphone.connect(analyser);
@@ -335,13 +336,13 @@ window.addEventListener('DOMContentLoaded', () => {
       // 请求用户授权访问串口设备
       port = await navigator.serial.requestPort();
 
-      // 打开串口，设置波特率为 19200（与 Python 脚本一致）
+      // 打开串口
       await port.open({
-        baudRate: 19200,
+        baudRate: 115200,
         dataBits: 8,
         stopBits: 1,
         parity: 'none',
-        flowControl: 'none'
+        flowControl: 'hardware',
       });
 
       // 获取读写器
