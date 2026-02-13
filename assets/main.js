@@ -34,7 +34,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // 分辨率选项配置
   const RESOLUTIONS = {
     '160x80': { showWidth: 320, showHeight: 240, lcdX: 160, lcdY: 80 },
-    '350x172': { showWidth: 320, showHeight: 240, lcdX: 350, lcdY: 172 },
+    '320x172': { showWidth: 320, showHeight: 240, lcdX: 320, lcdY: 172 },
     '320x240': { showWidth: 320, showHeight: 240, lcdX: 320, lcdY: 240 }
   };
 
