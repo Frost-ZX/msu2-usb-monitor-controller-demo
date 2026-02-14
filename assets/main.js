@@ -4,7 +4,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const disconnectButton = document.getElementById('disconnect-button');
   const startButton = document.getElementById('start-button');
   const stopButton = document.getElementById('stop-button');
-  const canvas = document.getElementById('monitor-canvas');
+  const canvas = document.getElementById('canvas-element');
   const ctx = canvas.getContext('2d');
 
   // 全局变量
@@ -16,6 +16,16 @@ window.addEventListener('DOMContentLoaded', () => {
   let animationId = null;
   let lastRefreshTime = 0;
   let displayMode = 'data'; // 显示模式: 'data' 或 'spectrum'
+
+  // 初始化UI状态
+  function initUI() {
+    // 初始绘制
+    if (displayMode === 'data') {
+      monitor.createDisplayImage();
+    } else {
+      drawSpectrum();
+    }
+  }
 
   // 音频相关变量
   let audioContext = null;
@@ -186,6 +196,9 @@ window.addEventListener('DOMContentLoaded', () => {
   // 创建全局监控器实例
   const monitor = new SystemMonitor();
 
+  // 初始化UI
+  initUI();
+
   // 初始化音频上下文和麦克风
   async function initAudio() {
     try {
@@ -333,6 +346,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // 连接按钮点击事件
   connectButton.addEventListener('click', async () => {
     try {
+
       // 请求用户授权访问串口设备
       port = await navigator.serial.requestPort();
 
@@ -434,6 +448,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 断开连接按钮点击事件
   disconnectButton.addEventListener('click', async () => {
+
     // 断开连接前自动停止监控
     if (animationId) {
       console.log('自动停止监控...');
@@ -458,6 +473,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     deviceState = 0;
     console.log('设备已断开连接');
+
   });
 
   // 辅助函数：将32位整数拆分为4个字节
