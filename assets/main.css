@@ -144,8 +144,8 @@ button.disabled:hover {
 }
 
 /* 选择器容器 */
-.resolution-selector,
-.display-mode-selector {
+.resolution-config,
+.display-mode-config {
   display: flex;
   flex-direction: column;
   gap: 8px;

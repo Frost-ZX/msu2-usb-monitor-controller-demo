@@ -19,30 +19,23 @@
       <div class="actions">
         <button id="connect-button">连接设备</button>
         <button id="disconnect-button">断开连接</button>
-        <button id="start-button">开始发送</button>
-        <button id="stop-button">停止发送</button>
+        <button id="start-button">开始渲染</button>
+        <button id="stop-button">停止渲染</button>
       </div>
 
       <!-- 配置 -->
       <div class="settings">
 
         <!-- 分辨率 -->
-        <div class="resolution-selector">
-          <label for="resolution">分辨率：</label>
-          <select id="resolution">
-            <option value="160x80" selected>160x80</option>
-            <option value="320x172">320x172</option>
-            <option value="320x240">320x240</option>
-          </select>
+        <div class="resolution-config">
+          <label for="resolution-selector">分辨率：</label>
+          <select id="resolution-selector"></select>
         </div>
 
         <!-- 显示模式 -->
-        <div class="display-mode-selector">
-          <label for="display-mode">显示模式：</label>
-          <select id="display-mode">
-            <option value="data" selected>文本数据</option>
-            <option value="spectrum">频谱分析</option>
-          </select>
+        <div class="display-mode-config">
+          <label for="display-mode-selector">显示模式：</label>
+          <select id="display-mode-selector"></select>
         </div>
 
       </div>
@@ -51,7 +44,7 @@
 
     <!-- 画布容器 -->
     <div class="canvas-container">
-      <canvas id="canvas-element" width="320" height="240"></canvas>
+      <canvas id="canvas-element"></canvas>
     </div>
 
   </div>
