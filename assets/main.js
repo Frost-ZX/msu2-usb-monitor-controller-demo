@@ -2,13 +2,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   /** 显示模式列表 */
   const DISPLAY_MODES = {
-    data: {
-      isDefault: true,
-      label: '数据显示',
-    },
-    spectrum: {
+    audioSpectrum: {
       isDefault: false,
-      label: '频谱显示',
+      label: '音频频谱',
     },
     audioVisualizer1: {
       isDefault: false,
@@ -17,6 +13,10 @@ window.addEventListener('DOMContentLoaded', () => {
     audioVisualizer2: {
       isDefault: false,
       label: '音频可视化 - 2',
+    },
+    dataText: {
+      isDefault: true,
+      label: '数据显示',
     },
     digitalClock: {
       isDefault: false,
@@ -27,13 +27,13 @@ window.addEventListener('DOMContentLoaded', () => {
   /** 分辨率配置选项 */
   const RESOLUTION_LIST = {
     '160x80': {
-      isDefault: true,
+      isDefault: false,
       label: '160x80',
       lcdX: 160, lcdY: 80,
       showWidth: 480, showHeight: 240,
     },
     '320x172': {
-      isDefault: false,
+      isDefault: true,
       label: '320x172',
       lcdX: 320, lcdY: 172,
       showWidth: 320, showHeight: 172,
@@ -111,7 +111,7 @@ window.addEventListener('DOMContentLoaded', () => {
    * @desc 显示模式
    * @type {keyof (typeof DISPLAY_MODES)}
    */
-  let displayMode = 'data';
+  let displayMode = 'dataText';
 
   // 音频相关变量
 
@@ -675,20 +675,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
       // 更新画布内容
       switch (displayMode) {
+        case 'audioSpectrum':
+          await renderAudioSpectrum();
+          break;
         case 'audioVisualizer1':
           await renderAudioVisualizer1();
           break;
         case 'audioVisualizer2':
           await renderAudioVisualizer2();
           break;
-        case 'data':
+        case 'dataText':
           await renderDataText();
           break;
         case 'digitalClock':
           await renderDigitalClock();
-          break;
-        case 'spectrum':
-          await renderAudioSpectrum();
           break;
         default:
           break;
@@ -802,7 +802,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     ctx.closePath();
-    ctx.strokeStyle = '#00ff88';
+    ctx.strokeStyle = '#00FF88';
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -836,9 +836,9 @@ window.addEventListener('DOMContentLoaded', () => {
     audioAnalyser.getByteFrequencyData(audioDataArray);
 
     // 频谱粒子矩阵
-    let cols = 16;
-    let rows = 8;
-    let padding = 20;
+    let cols = 20;
+    let rows = 10;
+    let padding = 10;
     let cellWidth = (CANVAS_WIDTH - padding * 2) / cols;
     let cellHeight = (CANVAS_HEIGHT - padding * 2) / rows;
 
@@ -861,7 +861,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
           ctx.beginPath();
           ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(0, 255, 255, ${0.3 + brightness * 0.7})`;
+          ctx.fillStyle = `rgba(0, 255, 255, ${0.2 + brightness * 0.8})`;
           ctx.fill();
 
         }
@@ -926,7 +926,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // 显示模式
     for (let key in DISPLAY_MODES) {
 
-      /** @type {typeof DISPLAY_MODES['data']} */
+      /** @type {typeof DISPLAY_MODES['dataText']} */
       let item = DISPLAY_MODES[key];
       let element = document.createElement('option');
 
