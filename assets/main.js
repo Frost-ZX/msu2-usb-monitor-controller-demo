@@ -18,6 +18,10 @@ window.addEventListener('DOMContentLoaded', () => {
       isDefault: false,
       label: '音频可视化 - 2',
     },
+    digitalClock: {
+      isDefault: false,
+      label: '数字时钟',
+    },
   };
 
   /** 分辨率配置选项 */
@@ -680,6 +684,9 @@ window.addEventListener('DOMContentLoaded', () => {
         case 'data':
           await renderDataText();
           break;
+        case 'digitalClock':
+          await renderDigitalClock();
+          break;
         case 'spectrum':
           await renderAudioSpectrum();
           break;
@@ -879,6 +886,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // 更新画布内容
     dataTextRender.createDisplayImage();
+
+  }
+
+  /** 渲染数字时钟内容 */
+  async function renderDigitalClock() {
+
+    // 清空画布
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // 获取当前时间
+    let date = new Date();
+    let hours = String(date.getHours()).padStart(2, '0');
+    let minutes = String(date.getMinutes()).padStart(2, '0');
+    let seconds = String(date.getSeconds()).padStart(2, '0');
+
+    // 计算字体大小，确保不超出画布
+    let padding = 10;
+    let fontSize = Math.floor((CANVAS_HEIGHT - padding * 2) / 3);
+    let timeFont = `${fontSize}px monospace`;
+    let timeText = `${hours}:${minutes}:${seconds}`;
+
+    // 绘制时间
+    ctx.font = timeFont;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(timeText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 
   }
 
