@@ -18,13 +18,13 @@ window.addEventListener('DOMContentLoaded', () => {
       isDefault: true,
       label: '160x80',
       lcdX: 160, lcdY: 80,
-      showWidth: 320, showHeight: 240,
+      showWidth: 480, showHeight: 240,
     },
     '320x172': {
       isDefault: false,
       label: '320x172',
       lcdX: 320, lcdY: 172,
-      showWidth: 320, showHeight: 240,
+      showWidth: 320, showHeight: 172,
     },
     '320x240': {
       isDefault: false,
@@ -776,15 +776,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
         element.selected = true;
 
-        // 更新画布属性
-        canvas.width = item.showWidth;
-        canvas.height = item.showHeight;
-
         // 更新显示参数
         CANVAS_WIDTH = item.showWidth;
         CANVAS_HEIGHT = item.showHeight;
         LCD_WIDTH = item.lcdX;
         LCD_HEIGHT = item.lcdY;
+
+        // 更新画布属性
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
 
       }
 
@@ -920,15 +920,15 @@ window.addEventListener('DOMContentLoaded', () => {
       let value = resolutionSelector.value;
       let config = RESOLUTION_LIST[value];
 
-      // 更新画布属性
-      canvas.width = CANVAS_WIDTH;
-      canvas.height = CANVAS_HEIGHT;
-
       // 更新显示参数
       CANVAS_WIDTH = config.showWidth;
       CANVAS_HEIGHT = config.showHeight;
       LCD_WIDTH = config.lcdX;
       LCD_HEIGHT = config.lcdY;
+
+      // 更新画布属性
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
 
       // 显示信息
       console.info(`分辨率切换成功：${value}`);
