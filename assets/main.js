@@ -776,15 +776,16 @@ window.addEventListener('DOMContentLoaded', () => {
     let baseRadius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.25;
     let maxRadiusOffset = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.2;
 
-    // 简化：只绘制一个声波圆环
-    let numPoints = Math.min(audioBufferLength, 64);
+    // 获取绘制点数量
+    let pointSum = Math.min(audioBufferLength, 64);
 
     ctx.beginPath();
 
-    for (let i = 0; i <= numPoints; i++) {
+    // 绘制一个声波圆环
+    for (let i = 0; i <= pointSum; i++) {
 
-      let index = i % numPoints;
-      let angle = (index / numPoints) * Math.PI * 2 - Math.PI / 2;
+      let index = i % pointSum;
+      let angle = (index / pointSum) * Math.PI * 2 - Math.PI / 2;
 
       let value = audioDataArray[index];
       let radiusOffset = (value / 255) * maxRadiusOffset;
@@ -806,7 +807,28 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 绘制内圈底色
+    let dataSum = 0;
+
+    for (let i = 0; i < audioBufferLength; i++) {
+      dataSum += audioDataArray[i];
+    }
+
+    // 计算平均音量
+    let avgVolume = dataSum / audioBufferLength;
+
+    // 计算中心圆形半径（音量越高，圆形越大）
+    let centerCircleRadius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.05 + (avgVolume / 255) * Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.15;
+
+    // 绘制中心圆形
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, centerCircleRadius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 255, 136, ${0.3 + (avgVolume / 255) * 0.7})`;
+    ctx.fill();
+    ctx.strokeStyle = '#00FF88';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 绘制外层圆形
     ctx.beginPath();
     ctx.arc(centerX, centerY, baseRadius - 2, 0, Math.PI * 2);
     ctx.strokeStyle = '#004422';
