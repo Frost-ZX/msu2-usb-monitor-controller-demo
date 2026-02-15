@@ -1,0 +1,12 @@
+{
+  "name": "msu2-usb-monitor-controller",
+  "version": "1.0.0",
+  "description": "MSU2 USB 小屏幕控制网页 Demo，使用 TRAE 辅助编写，参考了原 Python 程序的代码。",
+  "author": "Frost-ZX",
+  "keywords": ["demo", "web"],
+  "license": "GPL-3.0-only",
+  "scripts": {},
+  "dependencies": {
+    "@types/w3c-web-serial": "^1.0.8"
+  }
+}
