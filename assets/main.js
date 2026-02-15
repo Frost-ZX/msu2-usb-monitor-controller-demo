@@ -10,6 +10,14 @@ window.addEventListener('DOMContentLoaded', () => {
       isDefault: false,
       label: '频谱显示',
     },
+    audioVisualizer1: {
+      isDefault: false,
+      label: '音频可视化 - 1',
+    },
+    audioVisualizer2: {
+      isDefault: false,
+      label: '音频可视化 - 2',
+    },
   };
 
   /** 分辨率配置选项 */
@@ -663,6 +671,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
       // 更新画布内容
       switch (displayMode) {
+        case 'audioVisualizer1':
+          await renderAudioVisualizer1();
+          break;
+        case 'audioVisualizer2':
+          await renderAudioVisualizer2();
+          break;
         case 'data':
           await renderDataText();
           break;
@@ -689,14 +703,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // 清空画布
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     if (!audioAnalyser) {
-      ctx.fillStyle = 'white';
-      ctx.font = '16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('音频未初始化', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      await renderCustomText('音频未初始化');
       return;
     }
 
@@ -728,6 +739,139 @@ window.addEventListener('DOMContentLoaded', () => {
 
     }
 
+  }
+
+  /** 渲染音频可视化内容 */
+  async function renderAudioVisualizer1() {
+
+    // 初始化音频
+    if (!isAudioReady) {
+      await audioAnalyserStart();
+    }
+
+    // 清空画布
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    if (!audioAnalyser) {
+      await renderCustomText('音频未初始化');
+      return;
+    }
+
+    // 获取频谱数据
+    audioAnalyser.getByteFrequencyData(audioDataArray);
+
+    // 计算圆心
+    let centerX = CANVAS_WIDTH / 2;
+    let centerY = CANVAS_HEIGHT / 2;
+
+    // 基础半径
+    let baseRadius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.25;
+    let maxRadiusOffset = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.2;
+
+    // 简化：只绘制一个声波圆环
+    let numPoints = Math.min(audioBufferLength, 64);
+
+    ctx.beginPath();
+
+    for (let i = 0; i <= numPoints; i++) {
+
+      let index = i % numPoints;
+      let angle = (index / numPoints) * Math.PI * 2 - Math.PI / 2;
+
+      let value = audioDataArray[index];
+      let radiusOffset = (value / 255) * maxRadiusOffset;
+
+      let radius = baseRadius + radiusOffset;
+      let x = centerX + Math.cos(angle) * radius;
+      let y = centerY + Math.sin(angle) * radius;
+
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+
+    }
+
+    ctx.closePath();
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 绘制内圈底色
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, baseRadius - 2, 0, Math.PI * 2);
+    ctx.strokeStyle = '#004422';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+  }
+
+  /** 渲染音频可视化内容 */
+  async function renderAudioVisualizer2() {
+
+    // 初始化音频
+    if (!isAudioReady) {
+      await audioAnalyserStart();
+    }
+
+    // 清空画布
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    if (!audioAnalyser) {
+      await renderCustomText('音频未初始化');
+      return;
+    }
+
+    // 获取频谱数据
+    audioAnalyser.getByteFrequencyData(audioDataArray);
+
+    // 频谱粒子矩阵
+    let cols = 16;
+    let rows = 8;
+    let padding = 20;
+    let cellWidth = (CANVAS_WIDTH - padding * 2) / cols;
+    let cellHeight = (CANVAS_HEIGHT - padding * 2) / rows;
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+
+        let x = padding + col * cellWidth + cellWidth / 2;
+        let y = padding + row * cellHeight + cellHeight / 2;
+
+        let dataIndex = Math.floor((col / cols) * audioBufferLength);
+        let value = audioDataArray[dataIndex];
+
+        let threshold = (rows - 1 - row) / rows;
+        let normalizedValue = value / 255;
+
+        if (normalizedValue > threshold) {
+
+          let size = cellHeight * 0.35;
+          let brightness = normalizedValue;
+
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(0, 255, 255, ${0.3 + brightness * 0.7})`;
+          ctx.fill();
+
+        }
+
+      }
+    }
+
+  }
+
+  /** 渲染自定义文本 */
+  async function renderCustomText(text = '') {
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
   }
 
   /** 渲染数据文本内容 */
