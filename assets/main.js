@@ -814,15 +814,16 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // 计算平均音量
-    let avgVolume = dataSum / audioBufferLength;
+    let avgVolume0 = dataSum / audioBufferLength;
+    let avgVolume1 = avgVolume0 / 255;
 
     // 计算中心圆形半径（音量越高，圆形越大）
-    let centerCircleRadius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.05 + (avgVolume / 255) * Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.15;
+    let centerCircleRadius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.05 + avgVolume1 * Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) * 0.15;
 
     // 绘制中心圆形
     ctx.beginPath();
     ctx.arc(centerX, centerY, centerCircleRadius, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0, 255, 136, ${0.3 + (avgVolume / 255) * 0.7})`;
+    ctx.fillStyle = `rgba(0, 255, 136, ${0.2 + avgVolume1 * 0.8})`;
     ctx.fill();
     ctx.strokeStyle = '#00FF88';
     ctx.lineWidth = 2;
@@ -833,6 +834,27 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.arc(centerX, centerY, baseRadius - 2, 0, Math.PI * 2);
     ctx.strokeStyle = '#004422';
     ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 绘制线段
+    ctx.beginPath();
+    ctx.strokeStyle = '#00CCFF';
+    ctx.lineWidth = 2;
+    // 上
+    ctx.moveTo(0, 1);
+    ctx.lineTo(avgVolume1 * CANVAS_WIDTH, 1);
+    ctx.stroke();
+    // 右
+    ctx.moveTo(CANVAS_WIDTH - 4, 0);
+    ctx.lineTo(CANVAS_WIDTH - 4, avgVolume1 * CANVAS_HEIGHT);
+    ctx.stroke();
+    // 下
+    ctx.moveTo(CANVAS_WIDTH, CANVAS_HEIGHT - 1);
+    ctx.lineTo(CANVAS_WIDTH - avgVolume1 * CANVAS_WIDTH, CANVAS_HEIGHT - 1);
+    ctx.stroke();
+    // 左
+    ctx.moveTo(4, CANVAS_HEIGHT);
+    ctx.lineTo(4, CANVAS_HEIGHT - avgVolume1 * CANVAS_HEIGHT);
     ctx.stroke();
 
   }
