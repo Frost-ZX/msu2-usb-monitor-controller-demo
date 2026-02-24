@@ -476,6 +476,96 @@ window.addEventListener('DOMContentLoaded', () => {
 
   }
 
+  /**
+   * 对图像数据进行压缩处理，减少传输数据量
+   * - 旧算法，适配 `160x80` 设备
+   */
+  function convertDisplayDataLegacy(imageData = []) {
+
+    let totalDataSize = imageData.length;
+    let dataPerPage = 128;
+    let dataPage1 = 0;
+    let dataPage2 = 0;
+    let hexUse = [];
+
+    // -- 按页处理数据，每页 128 个像素 --
+
+    for (let i = 0; i < Math.floor(totalDataSize / dataPerPage); i++) {
+
+      dataPage1 = dataPage2;
+      dataPage2 += dataPerPage;
+
+      let dataW = imageData.slice(dataPage1, dataPage2);
+      let cmpUse = [];
+
+      for (let j = 0; j < dataW.length; j += 2) {
+        cmpUse.push((dataW[j] << 16) | dataW[j + 1]);
+      }
+
+      // 找出最频繁的颜色作为背景色
+      let colorCount = {};
+
+      cmpUse.forEach(color => {
+        colorCount[color] = (colorCount[color] || 0) + 1;
+      });
+
+      let maxCount = 0;
+      let backgroundColor = 0;
+
+      for (let [color, count] of Object.entries(colorCount)) {
+        if (count > maxCount) {
+          maxCount = count;
+          backgroundColor = parseInt(color);
+        }
+      }
+
+      hexUse.push(2, 4);
+      hexUse.push(...convertDigitToInts(backgroundColor));
+
+      // 只记录与背景色不同的像素
+      cmpUse.forEach((cmpValue, index) => {
+        if (cmpValue !== backgroundColor) {
+          hexUse.push(4, index);
+          hexUse.push(...convertDigitToInts(cmpValue));
+        }
+      });
+
+      hexUse.push(2, 3, 8, 1, 0, 0);
+
+    }
+
+    // -- 处理剩余数据 --
+
+    let remainingDataSize = totalDataSize % dataPerPage;
+
+    if (remainingDataSize !== 0) {
+
+      let dataW = imageData.slice(-remainingDataSize);
+
+      // 补全数据
+      while (dataW.length < dataPerPage) {
+        dataW.push(0xFFFF);
+      }
+
+      let cmpUse = [];
+
+      for (let j = 0; j < dataW.length; j += 2) {
+        cmpUse.push((dataW[j] << 16) | dataW[j + 1]);
+      }
+
+      cmpUse.forEach((cmpValue, index) => {
+        hexUse.push(4, index);
+        hexUse.push(...convertDigitToInts(cmpValue));
+      });
+
+      hexUse.push(2, 3, 8, 0, remainingDataSize * 2, 0);
+
+    }
+
+    return hexUse;
+
+  }
+
   /** 设置 LCD 显示起始坐标 */
   function lcdSetDisplayXY(lcdD0 = 0, lcdD1 = 0) {
     let hexUse = [];
