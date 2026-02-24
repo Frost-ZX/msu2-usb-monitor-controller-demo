@@ -566,6 +566,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
   }
 
+  /**
+   * @description 设置显示方向
+   * @param {0|1} direction 显示方向
+   * - 0：正常，1：上下翻转
+   */
+  async function lcdSetDirection(direction = 0) {
+
+    let hexUse = [];
+
+    hexUse.push(2);  // LCD 多次写入命令
+    hexUse.push(3);  // 设置指令
+    hexUse.push(10); // 显示方向指令
+    hexUse.push(direction);
+    hexUse.push(0, 0);
+
+    await sendData(hexUse);
+
+  }
+
   /** 设置 LCD 显示起始坐标 */
   function lcdSetDisplayXY(lcdD0 = 0, lcdD1 = 0) {
     let hexUse = [];
@@ -1248,6 +1267,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     });
 
+  })();
+
+  // 调试
+  (function () {
+    window.lcdSetDirection = lcdSetDirection;
   })();
 
 });
