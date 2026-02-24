@@ -652,7 +652,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // 处理接收到的数据
         let data = decoder.decode(value);
 
-        console.debug('接收数据:', data);
+        console.debug('接收数据:', { decoded: data });
 
         // 检测是否为 MSN 设备
         if (data.length > 5) {
